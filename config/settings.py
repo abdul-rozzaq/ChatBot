@@ -1,32 +1,36 @@
 from pathlib import Path
-from dotenv import load_dotenv
-import os
+
+from environs import Env
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 dotenv_path = BASE_DIR / ".env"
 
-load_dotenv(dotenv_path, override=True)
+env = Env()
+env.read_env(dotenv_path, override=True)
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = env.str("SECRET_KEY")
 
-DEBUG = os.getenv("DEBUG", default=False)
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = ["*"]
 
-# BOT configuration
-BOT_HOST = os.getenv("BOT_HOST")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+REDIS_URL = env.str("REDIS_URL")
+
+# Bot settings
+BOT_HOST = env.str("BOT_HOST")
+BOT_TOKEN = env.str("BOT_TOKEN")
 BOT_WEBHOOK_URL = f"{BOT_HOST}/bot/webhook/{BOT_TOKEN.split(':', maxsplit=1)[0]}/updates"
+
+ADMIN_IDS = env.list("ADMIN_IDS")
+DAILY_LIMIT = env.int("DAILY_LIMIT", default=3)
 
 CSRF_TRUSTED_ORIGINS = [
     "https://sophiabooks.uz",
     "https://chatbot13.pythonanywhere.com",
 ]
 
-ADMIN_IDS = "6969574895"
-
-# Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -69,9 +73,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -79,9 +80,6 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -99,9 +97,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
@@ -111,9 +106,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
 STATIC_URL = "/static/"
 
 if DEBUG:
@@ -121,10 +113,8 @@ if DEBUG:
 else:
     STATIC_ROOT = BASE_DIR / "static"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AI_BASE_URL = os.getenv("AI_BASE_URL")
-AI_TOKEN = os.getenv("AI_TOKEN")
+AI_BASE_URL = env.str("AI_BASE_URL")
+AI_TOKEN = env.str("AI_TOKEN")

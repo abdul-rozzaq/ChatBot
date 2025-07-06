@@ -8,7 +8,6 @@ from .handlers import user
 
 
 webhook_dp = Dispatcher()
-webhook_dp.message.middleware()
 
 webhook_dp["translation"] = TranslationsService()
 webhook_dp["service"] = BotService()

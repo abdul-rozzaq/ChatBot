@@ -34,12 +34,22 @@ async def language_callback(callback: CallbackQuery, service: BotService, transl
     """Til tanlash callback"""
     lang = callback.data.split("_")[1]
 
+    count = await service.get_usage_count(callback.from_user.id)
+
     await service.set_user_lang(callback.from_user.id, lang)
     await callback.message.edit_text(translation.get_text("language_selected", lang))
 
+    await callback.message.answer(translation.get_text("usage_count").format(count=count))
+
 
 @router.message()
-async def handle_message(message: Message, ai: AI, service: BotService):
+async def handle_message(message: Message, ai: AI, service: BotService, translation: TranslationsService):
+
+    if not (await service.is_allowed(message.from_user.id)):
+        await message.answer(translation.get_text('limit_exceeded'))
+
+        return
+
     loading = await message.answer("⏳")
 
     lang = await service.get_user_lang(message.from_user.id)
@@ -75,3 +85,6 @@ async def handle_message(message: Message, ai: AI, service: BotService):
         await message.answer(response)
 
     await loading.delete()
+
+    count = await service.increment_usage_count(message.from_user.id)
+    await message.answer(translation.get_text("usage_count").format(count=count))
