@@ -34,7 +34,7 @@ async def language_callback(callback: CallbackQuery, service: BotService, transl
     """Til tanlash callback"""
     lang = callback.data.split("_")[1]
 
-    count = await service.get_usage_count(callback.from_user.id)
+    count = await service.get_used_count(callback.from_user.id)
 
     await service.set_user_lang(callback.from_user.id, lang)
     await callback.message.edit_text(translation.get_text("language_selected", lang))
@@ -44,47 +44,49 @@ async def language_callback(callback: CallbackQuery, service: BotService, transl
 
 @router.message()
 async def handle_message(message: Message, ai: AI, service: BotService, translation: TranslationsService):
+    message_text = message.text
+    is_allowed = service.is_allowed(message.from_user.id)
+    lang = await service.get_user_lang(message.from_user.id)
 
-    if not (await service.is_allowed(message.from_user.id)):
-        await message.answer(translation.get_text('limit_exceeded'))
+    if not is_allowed:
+        await message.answer(translation.get_text("limit_exceeded"))
 
         return
 
     loading = await message.answer("⏳")
-
-    lang = await service.get_user_lang(message.from_user.id)
-    message_text = message.text
-
     old_messages = await service.get_user_messages(message.from_user.id)
 
-    await service.create_chat_message(
-        telegram_id=message.from_user.id,
-        role="user",
-        content=message_text,
-    )
-
-    response = await ai.send_prompt(
+    status, ai_response = await ai.send_prompt(
         text=message_text,
         lang=lang,
         old_messages=old_messages,
     )
 
-    await service.create_chat_message(
-        telegram_id=message.from_user.id,
-        role="assistant",
-        content=response,
-    )
+    if 200 <= status <= 299:
+        service.increment_usage_count()
 
-    if len(response) > 4096:
-        response = response[:4093] + "..."
+        await service.create_chat_message(
+            telegram_id=message.from_user.id,
+            role="user",
+            content=message_text,
+        )
+
+        await service.create_chat_message(
+            telegram_id=message.from_user.id,
+            role="assistant",
+            content=ai_response,
+        )
+
+        if len(ai_response) > 4096:
+            ai_response = ai_response[:4093] + "..."
 
     try:
-        await message.answer(response, parse_mode="MARKDOWN")
+        await message.answer(ai_response, parse_mode="MARKDOWN")
 
     except Exception:
-        await message.answer(response)
+        await message.answer(ai_response)
 
     await loading.delete()
 
-    count = await service.increment_usage_count(message.from_user.id)
+    count = service.get_used_count(message.from_user.id)
     await message.answer(translation.get_text("usage_count").format(count=count))

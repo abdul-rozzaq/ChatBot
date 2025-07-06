@@ -35,16 +35,14 @@ class AI:
             "messages": messages,
         }
 
-        try:
-            # return "Salom qanday yordam bera olaman ?"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(settings.AI_BASE_URL, headers=headers, json=data, timeout=30) as response:
+                status = response.status
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(settings.AI_BASE_URL, headers=headers, json=data, timeout=30) as response:
-                    response.raise_for_status()
+                if 200 <= status <= 299:
                     json_data = await response.json()
-                    return json_data["choices"][0]["message"]["content"]
+                    message = json_data["choices"][0]["message"]["content"]
+                else:
+                    message = "Kechirasiz, hozircha javob bera olmayman. Iltimos, keyinroq urinib ko'ring."
 
-        except Exception as e:
-            # Log the error if you have a logger, or print for debugging
-            print(f"AI request failed: {e}")
-            return "Kechirasiz, hozircha javob bera olmayman. Iltimos, keyinroq urinib ko'ring."
+                return (status, message)

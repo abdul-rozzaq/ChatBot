@@ -1,4 +1,4 @@
-import redis.asyncio as redis
+import redis
 
 from django.conf import settings
 
@@ -13,6 +13,7 @@ from asgiref.sync import sync_to_async
 
 
 redis = redis.Redis.from_url(settings.REDIS_URL)
+tz = ZoneInfo("Asia/Tashkent")
 
 
 class BotService:
@@ -68,24 +69,24 @@ class BotService:
         return [{"role": role, "content": content} for role, content in messages]
 
     def get_throttle_key(self, user_id):
-        tz = ZoneInfo("Asia/Tashkent")
         today = datetime.now(tz).date().isoformat()
 
         return f"throttle:{user_id}:{today}"
 
-    async def get_usage_count(self, user_id: int) -> bool:
+    def get_used_count(self, user_id: int) -> int:
         key = self.get_throttle_key(user_id)
-        count = await redis.get(key)
-        return settings.DAILY_LIMIT - int(count or 0)
+        count = redis.get(key)
+        return int(count or 0)
 
-    async def is_allowed(self, user_id: int) -> bool:
-        return await self.get_usage_count(user_id) > 0
+    def is_allowed(self, user_id: int) -> bool:
+        count = self.get_used_count(user_id)
+        return count < settings.DAILY_LIMIT
 
-    async def increment_usage_count(self, user_id: int) -> None:
+    def increment_usage_count(self, user_id: int) -> None:
         key = self.get_throttle_key(user_id)
-        count = await redis.incr(key)
+        count = redis.incr(key)
 
         if count == 1:
-            await redis.expire(key, self.TTL_SECONDS)
+            redis.expire(key, self.TTL_SECONDS)
 
-        return settings.DAILY_LIMIT - count
+        return count
