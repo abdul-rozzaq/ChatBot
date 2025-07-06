@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -63,7 +65,7 @@ async def handle_message(message: Message, ai: AI, service: BotService, translat
     )
 
     if 200 <= status <= 299:
-        service.increment_usage_count()
+        service.increment_usage_count(message.from_user.id)
 
         await service.create_chat_message(
             telegram_id=message.from_user.id,
@@ -89,4 +91,4 @@ async def handle_message(message: Message, ai: AI, service: BotService, translat
     await loading.delete()
 
     count = service.get_used_count(message.from_user.id)
-    await message.answer(translation.get_text("usage_count").format(count=count))
+    await message.answer(translation.get_text("usage_count").format(count=(settings.DAILY_LIMIT - count)))
