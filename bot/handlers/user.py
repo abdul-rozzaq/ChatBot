@@ -41,7 +41,7 @@ async def language_callback(callback: CallbackQuery, service: BotService, transl
     await service.set_user_lang(callback.from_user.id, lang)
     await callback.message.edit_text(translation.get_text("language_selected", lang))
 
-    await callback.message.answer(translation.get_text("usage_count").format(count=count))
+    await callback.message.answer(translation.get_text("usage_count").format(count=(settings.DAILY_LIMIT - count)))
 
 
 @router.message()
