@@ -24,7 +24,7 @@ async def start_command(message: Message, service: BotService, translation: Tran
     )
 
     await message.answer(
-        translation.get_text("hello").format(user.first_name),
+        translation.get_text("hello", lang=user.language).format(user.first_name),
         reply_markup=get_language_keyboard(),
     )
 
