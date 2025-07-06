@@ -34,7 +34,7 @@ async def language_callback(callback: CallbackQuery, service: BotService, transl
     """Til tanlash callback"""
     lang = callback.data.split("_")[1]
 
-    count = await service.get_used_count(callback.from_user.id)
+    count = service.get_used_count(callback.from_user.id)
 
     await service.set_user_lang(callback.from_user.id, lang)
     await callback.message.edit_text(translation.get_text("language_selected", lang))
